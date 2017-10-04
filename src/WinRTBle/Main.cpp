@@ -44,6 +44,9 @@ std::wstring advertisementTypeToString(BluetoothLEAdvertisementType advertisemen
 	return ret;
 }
 
+std::mutex lock;
+std::condition_variable found;
+
 int main()
 {
 	init_apartment();
@@ -77,11 +80,22 @@ int main()
 			for (GUID const & g : serviceUuids)
 				std::wcout << "ServiceUUID: [" << guidToString(g) << "]" << std::endl;
 
+			std::unique_lock<std::mutex> l(lock);
+
+			l.unlock();
+			found.notify_one();
 		});
 
 		auto status = watcher.Status();
 
 		watcher.Start();
+
+		std::cout << "Waiting for device";
+		std::unique_lock<std::mutex> l(lock);
+
+		found.wait(l);
+
+		std::cout << "Finished waiting for device";
 
 		int a;
 		std::cin >> a;
