@@ -7,6 +7,8 @@
 #include <sstream>
 #include <string>
 #include <mutex>
+#include <thread>
+#include <chrono>
 #include <condition_variable>
 
 #include "winrt/Windows.Devices.Bluetooth.h"

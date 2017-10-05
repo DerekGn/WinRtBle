@@ -44,12 +44,11 @@ std::wstring advertisementTypeToString(BluetoothLEAdvertisementType advertisemen
 	return ret;
 }
 
-std::mutex lock;
-std::condition_variable found;
-
 int main()
 {
 	init_apartment();
+
+	std::atomic<unsigned long long> deviceAddress = 0;
 
 	try
 	{
@@ -64,10 +63,10 @@ int main()
 
 		watcher.ScanningMode(BluetoothLEScanningMode::Active);
 
-		watcher.Received([&](BluetoothLEAdvertisementWatcher watcher, BluetoothLEAdvertisementReceivedEventArgs eventArgs) {
-			
+		watcher.Received([&](BluetoothLEAdvertisementWatcher watcher, BluetoothLEAdvertisementReceivedEventArgs eventArgs)
+		{
 			watcher.Stop();
-						
+
 			std::wcout <<
 				"LocalName: [" << eventArgs.Advertisement().LocalName().c_str() << "]" <<
 				"AdvertisementType: [" << advertisementTypeToString(eventArgs.AdvertisementType()) << "]" <<
@@ -80,25 +79,30 @@ int main()
 			for (GUID const & g : serviceUuids)
 				std::wcout << "ServiceUUID: [" << guidToString(g) << "]" << std::endl;
 
-			std::unique_lock<std::mutex> l(lock);
-
-			l.unlock();
-			found.notify_one();
+			deviceAddress = eventArgs.BluetoothAddress();
 		});
 
 		auto status = watcher.Status();
-
+		
+		std::cout << "Waiting for device: ";
+		
 		watcher.Start();
 
-		std::cout << "Waiting for device";
-		std::unique_lock<std::mutex> l(lock);
+		int count = 0;
+		
+		while ((count++ < 10) && deviceAddress == 0)
+		{
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+			std::cout << '.';
+		}
 
-		found.wait(l);
+		std::cout << std::endl << "Finished waiting for device." << std::endl;
 
-		std::cout << "Finished waiting for device";
-
-		int a;
-		std::cin >> a;
+		if (deviceAddress != 0)
+			std::cout << "Device found." << std::endl;
+		else
+			std::cout << "Device not found." << std::endl;
+		
 		return 0;
 	}
 	catch (const std::exception& e)
