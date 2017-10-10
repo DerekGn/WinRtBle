@@ -2,8 +2,12 @@
 
 using namespace winrt;
 using namespace Windows::Foundation;
+using namespace winrt::Windows::Foundation;
+using namespace Windows::Storage::Streams;
 using namespace Windows::Devices::Bluetooth;
+using namespace Windows::Foundation::Collections;
 using namespace Windows::Devices::Bluetooth::Advertisement;
+using namespace Windows::Devices::Bluetooth::GenericAttributeProfile;
 
 std::wstring guidToString(GUID uuid)
 {
@@ -94,6 +98,15 @@ IAsyncAction OpenDevice(unsigned long long deviceAddress)
 		{
 			std::wcout << std::hex <<
 				"\t\t\tCharacteristic - Guid: [" << guidToString(c.Uuid()) << "]" << std::endl;
+
+			auto readResult = co_await c.ReadValueAsync();
+
+			if (readResult.Status() == GattCommunicationStatus::Success)
+			{
+				std::wcout << "\t\t\tCharacteristic Data - Size: [" << readResult.Value().Length() << "]" << std::endl;
+
+				DataReader reader = DataReader::FromBuffer(readResult.Value());
+			}
 		}
 	}
 
@@ -138,14 +151,12 @@ int main()
 			deviceAddress = eventArgs.BluetoothAddress();
 		});
 
-		auto status = watcher.Status();
-		
 		std::cout << "Waiting for device: ";
-		
+
 		watcher.Start();
 
 		int count = 0;
-		
+
 		while ((count++ < 10) && deviceAddress == 0)
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(1));
