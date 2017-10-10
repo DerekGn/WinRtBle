@@ -5,18 +5,19 @@ using namespace Windows::Foundation;
 using namespace Windows::Devices::Bluetooth;
 using namespace Windows::Devices::Bluetooth::Advertisement;
 
-std::wstring guidToString(GUID g)
+std::wstring guidToString(GUID uuid)
 {
-	std::wostringstream ret;
+	std::wstring guid;
+	WCHAR* wszUuid = NULL;
+	if (::UuidToString(&uuid, (RPC_WSTR*) &wszUuid) == RPC_S_OK)
+	{
+		guid = wszUuid;
+		::RpcStringFree((RPC_WSTR*) &wszUuid);
+	}
 
-	ret << std::hex << std::setfill(L'0')
-		<< std::setw(2) << g.Data1 << ":"
-		<< std::setw(2) << g.Data2 << ":"
-		<< std::setw(2) << g.Data3 << ":"
-		<< std::setw(2) << g.Data4;
-
-	return ret.str();
+	return guid;
 }
+
 
 std::wstring advertisementTypeToString(BluetoothLEAdvertisementType advertisementType)
 {
