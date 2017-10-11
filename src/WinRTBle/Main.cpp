@@ -99,13 +99,18 @@ IAsyncAction OpenDevice(unsigned long long deviceAddress)
 			std::wcout << std::hex <<
 				"\t\t\tCharacteristic - Guid: [" << guidToString(c.Uuid()) << "]" << std::endl;
 
-			auto readResult = co_await c.ReadValueAsync();
-
-			if (readResult.Status() == GattCommunicationStatus::Success)
+			if (c.CharacteristicProperties() == GattCharacteristicProperties::Read)
 			{
-				std::wcout << "\t\t\tCharacteristic Data - Size: [" << readResult.Value().Length() << "]" << std::endl;
+				auto readResult = co_await c.ReadValueAsync();
 
-				DataReader reader = DataReader::FromBuffer(readResult.Value());
+				if (readResult.Status() == GattCommunicationStatus::Success)
+				{
+					std::wcout << "\t\t\tCharacteristic Data - Size: [" << readResult.Value().Length() << "]" << std::endl;
+
+					DataReader reader = DataReader::FromBuffer(readResult.Value());
+
+					std::wcout << "\t\t\tCharacteristic Data - [" << reader.ReadString(readResult.Value().Length()).c_str() << "]" << std::endl;
+				}
 			}
 		}
 	}
