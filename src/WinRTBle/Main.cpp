@@ -9,6 +9,10 @@ using namespace Windows::Foundation::Collections;
 using namespace Windows::Devices::Bluetooth::Advertisement;
 using namespace Windows::Devices::Bluetooth::GenericAttributeProfile;
 
+static const GUID UUID_SERIAL_CHARACTERISTIC = { 0x49535343, 0x1E4D, 0x4BD9,{ 0xBA, 0x61, 0x23, 0xC6, 0x47, 0x24, 0x96, 0x16 } };
+
+static const GUID UUID_SERIAL_SERVICE = { 0x49535343, 0xFE7D, 0x4AE5,{ 0x8F, 0xA9, 0x9F, 0xAF, 0xD2, 0x05, 0xE4, 0x55 } };
+
 std::wstring guidToString(GUID uuid)
 {
 	std::wstring guid;
@@ -115,6 +119,30 @@ IAsyncAction OpenDevice(unsigned long long deviceAddress)
 		}
 	}
 
+	auto serialServices = co_await device.GetGattServicesForUuidAsync(UUID_SERIAL_SERVICE);
+
+	if (serialServices.Services().Size() > 0)
+	{
+		std::cout << "Serial service found" << std::endl;
+
+		auto serialService = serialServices.Services().GetAt(0);
+
+		auto serialCharacteristics = co_await serialService.GetCharacteristicsForUuidAsync(UUID_SERIAL_CHARACTERISTIC);
+
+		if (serialCharacteristics.Characteristics().Size() > 0)
+		{
+			std::cout << "Serial characteristic found" << std::endl;
+
+			auto serialCharacteristic = serialCharacteristics.Characteristics().GetAt(0);
+
+			//auto result = co_await serialCharacteristic.WriteValueWithResultAsync();
+		}
+	}
+	else
+	{
+		std::cout << "Serial service not found" << std::endl;
+	}
+
 	device.Close();
 }
 
@@ -136,7 +164,7 @@ int main()
 			"\tMinSamplingInterval:  [0x" << watcher.MinSamplingInterval().count() << "]" << std::endl <<
 			std::endl;
 
-		watcher.ScanningMode(BluetoothLEScanningMode::Passive);
+		watcher.ScanningMode(BluetoothLEScanningMode::Active);
 
 		watcher.Received([&](BluetoothLEAdvertisementWatcher watcher, BluetoothLEAdvertisementReceivedEventArgs eventArgs)
 		{
