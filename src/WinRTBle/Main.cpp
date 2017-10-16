@@ -137,7 +137,9 @@ IAsyncAction OpenDevice(unsigned long long deviceAddress)
 
 			serialCharacteristic.ValueChanged([&](GattCharacteristic characteristic, GattValueChangedEventArgs eventArgs)
 			{
+				auto reader = DataReader::FromBuffer(eventArgs.CharacteristicValue());
 
+				std::cout << "serial data read: [" << std::hex << reader.ReadByte() << "]";
 			});
 
 			DataWriter writer;
