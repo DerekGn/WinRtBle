@@ -135,7 +135,14 @@ IAsyncAction OpenDevice(unsigned long long deviceAddress)
 
 			auto serialCharacteristic = serialCharacteristics.Characteristics().GetAt(0);
 
-			//auto result = co_await serialCharacteristic.WriteValueWithResultAsync();
+			serialCharacteristic.ValueChanged([&](GattCharacteristic characteristic, GattValueChangedEventArgs eventArgs)
+			{
+
+			});
+
+			DataWriter writer;
+			writer.WriteByte(0x56);
+			auto status = co_await serialCharacteristic.WriteValueWithResultAsync(writer.DetachBuffer());
 		}
 	}
 	else
