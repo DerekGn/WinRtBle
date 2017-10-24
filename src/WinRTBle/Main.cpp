@@ -26,7 +26,6 @@ std::wstring guidToString(GUID uuid)
 	return guid;
 }
 
-
 std::wstring advertisementTypeToString(BluetoothLEAdvertisementType advertisementType)
 {
 	std::wstring ret;
@@ -83,10 +82,10 @@ IAsyncAction OpenDevice(unsigned long long deviceAddress)
 
 	std::wcout << std::hex <<
 		"\tDevice Information: " << std::endl <<
-		"\tBluetoothAddress: [" << device.BluetoothAddress() << "]" << std::endl <<
-		"\tBluetoothAddressType: [" << bluetoothAddressTypeToString(device.BluetoothAddressType()) << "]" << std::endl <<
-		"\tConnectionStatus: [" << (device.ConnectionStatus() == BluetoothConnectionStatus::Connected ? "Connected" : "Disconnected") << "]" << std::endl <<
-		"\tDeviceId: [" << device.DeviceId().c_str() << "]" << std::endl <<
+		"\t\tBluetoothAddress: [" << device.BluetoothAddress() << "]" << std::endl <<
+		"\t\tBluetoothAddressType: [" << bluetoothAddressTypeToString(device.BluetoothAddressType()) << "]" << std::endl <<
+		"\t\tConnectionStatus: [" << (device.ConnectionStatus() == BluetoothConnectionStatus::Connected ? "Connected" : "Disconnected") << "]" << std::endl <<
+		"\t\tDeviceId: [" << device.DeviceId().c_str() << "]" << std::endl <<
 		std::endl;
 
 	auto services = co_await device.GetGattServicesAsync();
@@ -179,11 +178,11 @@ int main()
 		{
 			watcher.Stop();
 
-			std::wcout <<
+			std::wcout << std::endl <<
 				"AdvertisementReceived:" << std::endl <<
-				"\tLocalName: [" << eventArgs.Advertisement().LocalName().c_str() << "]" <<
-				"\tAdvertisementType: [" << advertisementTypeToString(eventArgs.AdvertisementType()) << "]" <<
-				"\tBluetoothAddress: [0x" << std::hex << eventArgs.BluetoothAddress() << "]" <<
+				"\tLocalName: [" << eventArgs.Advertisement().LocalName().c_str() << "]" << std::endl <<
+				"\tAdvertisementType: [" << advertisementTypeToString(eventArgs.AdvertisementType()) << "]" << std::endl <<
+				"\tBluetoothAddress: [0x" << std::hex << eventArgs.BluetoothAddress() << "]" << std::endl <<
 				"\tRawSignalStrengthInDBm: [" << std::dec << eventArgs.RawSignalStrengthInDBm() << "]" <<
 				std::endl;
 
@@ -208,14 +207,9 @@ int main()
 		std::cout << std::endl << "Finished waiting for device." << std::endl;
 
 		if (deviceAddress != 0)
-		{
-			std::cout << "Device found." << std::endl;
-
 			OpenDevice(deviceAddress).get();
-		}
 		else
 			std::cout << "Device not found." << std::endl;
-		
 
 		return 0;
 	}
