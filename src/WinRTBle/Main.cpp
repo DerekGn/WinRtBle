@@ -13,11 +13,11 @@ static const GUID UUID_SERIAL_CHARACTERISTIC = { 0x49535343, 0x1E4D, 0x4BD9,{ 0x
 
 static const GUID UUID_SERIAL_SERVICE = { 0x49535343, 0xFE7D, 0x4AE5,{ 0x8F, 0xA9, 0x9F, 0xAF, 0xD2, 0x05, 0xE4, 0x55 } };
 
-std::wstring guidToString(GUID uuid)
+std::string guidToString(GUID uuid)
 {
-	std::wstring guid;
-	WCHAR* wszUuid = NULL;
-	if (::UuidToString(&uuid, (RPC_WSTR*) &wszUuid) == RPC_S_OK)
+	std::string guid;
+	CHAR* wszUuid = NULL;
+	if (::UuidToStringA(&uuid, (RPC_CSTR*) &wszUuid) == RPC_S_OK)
 	{
 		guid = wszUuid;
 		::RpcStringFree((RPC_WSTR*) &wszUuid);
@@ -26,26 +26,26 @@ std::wstring guidToString(GUID uuid)
 	return guid;
 }
 
-std::wstring advertisementTypeToString(BluetoothLEAdvertisementType advertisementType)
+std::string advertisementTypeToString(BluetoothLEAdvertisementType advertisementType)
 {
-	std::wstring ret;
+	std::string ret;
 
 	switch (advertisementType)
 	{
 	case BluetoothLEAdvertisementType::ConnectableUndirected:
-		ret = L"ConnectableUndirected";
+		ret = "ConnectableUndirected";
 		break;
 	case BluetoothLEAdvertisementType::ConnectableDirected:
-		ret = L"ConnectableDirected";
+		ret = "ConnectableDirected";
 		break;
 	case BluetoothLEAdvertisementType::ScannableUndirected:
-		ret = L"ScannableUndirected";
+		ret = "ScannableUndirected";
 		break;
 	case BluetoothLEAdvertisementType::NonConnectableUndirected:
-		ret = L"NonConnectableUndirected";
+		ret = "NonConnectableUndirected";
 		break;
 	case BluetoothLEAdvertisementType::ScanResponse:
-		ret = L"ScanResponse";
+		ret = "ScanResponse";
 		break;
 	default:
 		break;
@@ -54,33 +54,97 @@ std::wstring advertisementTypeToString(BluetoothLEAdvertisementType advertisemen
 	return ret;
 }
 
-std::wstring bluetoothAddressTypeToString(BluetoothAddressType bluetoothAddressType)
+std::string bluetoothAddressTypeToString(BluetoothAddressType bluetoothAddressType)
 {
-	std::wstring ret;
+	std::string ret;
 
 	switch (bluetoothAddressType)
 	{
 	case BluetoothAddressType::Public:
-		ret = L"Public";
+		ret = "Public";
 		break;
 	case BluetoothAddressType::Random:
-		ret = L"Random";
+		ret = "Random";
 		break;
 	case BluetoothAddressType::Unspecified:
-		ret = L"Unspecified";
+		ret = "Unspecified";
 		break;
 	default:
 		break;
 	}
 
 	return ret;
+}
+
+std::string gattCommunicationStatusToString(GattCommunicationStatus status)
+{
+	std::string result;
+
+	switch (status)
+	{
+	case GattCommunicationStatus::AccessDenied:
+		result = "AccessDenied";
+		break;
+	case GattCommunicationStatus::ProtocolError:
+		result = "ProtocolError";
+		break;
+	case GattCommunicationStatus::Success:
+		result = "Success";
+		break;
+	case GattCommunicationStatus::Unreachable:
+		result = "Unreachable";
+		break;
+	default:
+		break;
+	}
+
+	return result;
+}
+
+std::string gattCharacteristicProperties(GattCharacteristicProperties properties)
+{
+	std::string result;
+
+	result.append("[");
+	if((properties & GattCharacteristicProperties::AuthenticatedSignedWrites) == GattCharacteristicProperties::AuthenticatedSignedWrites)
+		result.append(" AuthenticatedSignedWrites ");
+
+	if ((properties & GattCharacteristicProperties::Broadcast) == GattCharacteristicProperties::Broadcast)
+		result.append(" Broadcast ");
+
+	if ((properties & GattCharacteristicProperties::ExtendedProperties) == GattCharacteristicProperties::ExtendedProperties)
+		result.append(" ExtendedProperties ");
+
+	if ((properties & GattCharacteristicProperties::Indicate) == GattCharacteristicProperties::Indicate)
+		result.append(" Indicate ");
+
+	if ((properties & GattCharacteristicProperties::Notify) == GattCharacteristicProperties::Notify)
+		result.append(" Notify ");
+
+	if ((properties & GattCharacteristicProperties::Read) == GattCharacteristicProperties::Read)
+		result.append(" Read ");
+
+	if ((properties & GattCharacteristicProperties::ReliableWrites) == GattCharacteristicProperties::ReliableWrites)
+		result.append(" ReliableWrites " );
+
+	if ((properties & GattCharacteristicProperties::WritableAuxiliaries) == GattCharacteristicProperties::WritableAuxiliaries)
+		result.append(" WritableAuxiliaries ");
+
+	if ((properties & GattCharacteristicProperties::Write) == GattCharacteristicProperties::Write)
+		result.append(" Write ");
+
+	if ((properties & GattCharacteristicProperties::WriteWithoutResponse) == GattCharacteristicProperties::WriteWithoutResponse)
+		result.append(" WriteWithoutResponse ");
+
+	result.append("]");
+	return result;
 }
 
 IAsyncAction OpenDevice(unsigned long long deviceAddress)
 {
 	auto device = co_await BluetoothLEDevice::FromBluetoothAddressAsync(deviceAddress);
 
-	std::wcout << std::hex <<
+	std::cout << std::hex <<
 		"\tDevice Information: " << std::endl <<
 		"\t\tBluetoothAddress: [" << device.BluetoothAddress() << "]" << std::endl <<
 		"\t\tBluetoothAddressType: [" << bluetoothAddressTypeToString(device.BluetoothAddressType()) << "]" << std::endl <<
@@ -90,17 +154,19 @@ IAsyncAction OpenDevice(unsigned long long deviceAddress)
 
 	auto services = co_await device.GetGattServicesAsync();
 
+	std::cout << "Services Count: " << services.Services().Size() << std::endl;
+
 	for (GenericAttributeProfile::GattDeviceService const & s : services.Services())
 	{
-		std::wcout << std::hex <<
+		std::cout << std::hex <<
 			"\t\tService - Guid: [" << guidToString(s.Uuid()) << "]" << std::endl;
 
 		auto characteristics = co_await s.GetCharacteristicsAsync();
 
 		for (GenericAttributeProfile::GattCharacteristic const & c : characteristics.Characteristics())
 		{
-			std::wcout << std::hex <<
-				"\t\t\tCharacteristic - Guid: [" << guidToString(c.Uuid()) << "]" << std::endl;
+			std::cout << std::hex <<
+				"\t\t\tCharacteristic - Guid: [" << guidToString(c.Uuid()) << "]" << gattCharacteristicProperties(c.CharacteristicProperties()) << std::endl;
 
 			if (c.CharacteristicProperties() == GattCharacteristicProperties::Read)
 			{
@@ -115,40 +181,38 @@ IAsyncAction OpenDevice(unsigned long long deviceAddress)
 					std::wcout << "\t\t\tCharacteristic Data - [" << reader.ReadString(readResult.Value().Length()).c_str() << "]" << std::endl;
 				}
 			}
-		}
-	}
 
-	auto serialServices = co_await device.GetGattServicesForUuidAsync(UUID_SERIAL_SERVICE);
-
-	if (serialServices.Services().Size() > 0)
-	{
-		std::cout << "Serial service found" << std::endl;
-
-		auto serialService = serialServices.Services().GetAt(0);
-
-		auto serialCharacteristics = co_await serialService.GetCharacteristicsForUuidAsync(UUID_SERIAL_CHARACTERISTIC);
-
-		if (serialCharacteristics.Characteristics().Size() > 0)
-		{
-			std::cout << "Serial characteristic found" << std::endl;
-
-			auto serialCharacteristic = serialCharacteristics.Characteristics().GetAt(0);
-
-			serialCharacteristic.ValueChanged([&](GattCharacteristic characteristic, GattValueChangedEventArgs eventArgs)
+			if (c.Uuid() == UUID_SERIAL_CHARACTERISTIC)
 			{
-				auto reader = DataReader::FromBuffer(eventArgs.CharacteristicValue());
+				c.ValueChanged([&](GattCharacteristic characteristic, GattValueChangedEventArgs eventArgs)
+				{
+					std::cout << "Event" << std::endl;
 
-				std::cout << "serial data read: [" << std::hex << reader.ReadByte() << "]";
-			});
+					auto reader = DataReader::FromBuffer(eventArgs.CharacteristicValue());
 
-			DataWriter writer;
-			writer.WriteByte(0x56);
-			auto status = co_await serialCharacteristic.WriteValueWithResultAsync(writer.DetachBuffer());
+					std::cout << "serial data read: [" << std::hex << reader.ReadByte() << "]";
+				});
+
+				DataWriter writer;
+				writer.WriteByte(0x56);
+				auto status = co_await c.WriteValueWithResultAsync(writer.DetachBuffer());
+				
+				std::cout << "Status: " << gattCommunicationStatusToString(status.Status()) << std::endl;
+
+				std::this_thread::sleep_for(std::chrono::seconds(1));
+
+				/*auto readResult = co_await c.ReadValueAsync();
+
+				std::wcout << "Status: " << gattCommunicationStatusToString(readResult.Status()) << std::endl;
+
+				if (readResult.Status() == GattCommunicationStatus::Success)
+				{
+					auto reader = DataReader::FromBuffer(readResult.Value());
+
+					std::cout << "serial data read: [" << std::hex << reader.ReadByte() << "]";
+				}*/
+			}
 		}
-	}
-	else
-	{
-		std::cout << "Serial service not found" << std::endl;
 	}
 
 	device.Close();
@@ -178,7 +242,7 @@ int main()
 		{
 			watcher.Stop();
 
-			std::wcout << std::endl <<
+			std::cout << std::endl <<
 				"AdvertisementReceived:" << std::endl <<
 				"\tLocalName: [" << eventArgs.Advertisement().LocalName().c_str() << "]" << std::endl <<
 				"\tAdvertisementType: [" << advertisementTypeToString(eventArgs.AdvertisementType()) << "]" << std::endl <<
@@ -187,7 +251,7 @@ int main()
 				std::endl;
 
 			for (GUID const & g : eventArgs.Advertisement().ServiceUuids())
-				std::wcout << "ServiceUUID: [" << guidToString(g) << "]" << std::endl;
+				std::cout << "ServiceUUID: [" << guidToString(g) << "]" << std::endl;
 
 			deviceAddress = eventArgs.BluetoothAddress();
 		});
