@@ -22,7 +22,6 @@ std::wstring guidToString(GUID uuid)
 	return guid;
 }
 
-
 std::wstring advertisementTypeToString(BluetoothLEAdvertisementType advertisementType)
 {
 	std::wstring ret;
@@ -112,7 +111,41 @@ IAsyncAction OpenDevice(unsigned long long deviceAddress)
 					std::wcout << "\t\t\tCharacteristic Data - [" << reader.ReadString(readResult.Value().Length()).c_str() << "]" << std::endl;
 				}
 			}
+
+			if (c.CharacteristicProperties() == GattCharacteristicProperties::Notify)
+			{
+
+				c.ValueChanged([](GattCharacteristic const& charateristic, GattValueChangedEventArgs const& args)
+				{
+					std::wcout << std::hex <<
+						"\t\tNotified GattCharacteristic - Guid: [" << guidToString(charateristic.Uuid()) << "]" << std::endl;
+
+					DataReader reader = DataReader::FromBuffer(args.CharacteristicValue());
+
+					// Note this assumes value is string the characteristic type must be determined before reading
+					// This can display junk or maybe blowup
+					std::wcout << "\t\t\tCharacteristic Data - [" << reader.ReadString(args.CharacteristicValue().Length()).c_str() << "]" << std::endl;
+				});
+			}
 		}
+	}
+
+	auto uartService = services.Services().GetAt(4);
+
+	auto txService = (co_await uartService.GetCharacteristicsAsync()).Characteristics().GetAt(0);
+
+	auto rxService = (co_await uartService.GetCharacteristicsAsync()).Characteristics().GetAt(1);
+
+	auto writer = Windows::Storage::Streams::DataWriter();
+	writer.WriteByte(0x56);
+	auto status = co_await txService.WriteValueWithResultAsync(writer.DetachBuffer(),winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattWriteOption::WriteWithoutResponse);
+	
+	if (status.Status() == GattCommunicationStatus::Success)
+	{
+	}
+	else
+	{
+		std::wcout << "Write Failed";
 	}
 
 	device.Close();
